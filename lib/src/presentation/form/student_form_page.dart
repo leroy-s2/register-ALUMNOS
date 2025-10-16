@@ -125,6 +125,58 @@ class StudentFormPage extends StatelessWidget {
                       ),
 
                      const SizedBox(height: 24),
+                    // Selector de fecha de nacimiento
+                    Builder(
+                      builder: (context) {
+                        final provider = context.watch<StudentFormProvider>();
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Fecha de Nacimiento',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            GestureDetector(
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: provider.birthDate ?? DateTime(2000, 1, 1),
+                                  firstDate: DateTime(1900),
+                                  lastDate: DateTime.now(),
+                                );
+                                if (picked != null) {
+                                  provider.setBirthDate(picked);
+                                }
+                              },
+                              child: AbsorbPointer(
+                                child: TextFormField(
+                                  readOnly: true,
+                                  validator: (_) => provider.validateBirthDate(provider.birthDate),
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(Icons.cake_outlined),
+                                    hintText: 'Selecciona tu fecha de nacimiento',
+                                    filled: true,
+                                    fillColor: Colors.blueGrey.shade50,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(color: Colors.grey.shade300),
+                                    ),
+                                  ),
+                                  controller: TextEditingController(
+                                    text: provider.birthDate == null
+                                        ? ''
+                                        : '${provider.birthDate!.day.toString().padLeft(2, '0')}/${provider.birthDate!.month.toString().padLeft(2, '0')}/${provider.birthDate!.year}',
+                                  ),
+                                  onSaved: (_) {},
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 24),
 
                     /// ☎ Información de Contacto
                     const Text(
@@ -177,51 +229,48 @@ class StudentFormPage extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    /// ✅ Checkbox
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: provider.acceptedTerms,
-                          onChanged: provider.toggleTerms,
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: RichText(
-                              text: TextSpan(
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade800,
-                                ),
-                                children: const [
-                                  TextSpan(
-                                      text:
-                                          'Acepto los Términos y Condiciones y la '),
-                                  TextSpan(
-                                    text: 'Política de Privacidad',
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
                     /// 🔘 Botón de Registro
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: provider.acceptedTerms
-                            ? provider.onSubmit
-                            : null,
+                        onPressed: () async {
+                          final current = provider.formKey.currentState;
+                          if (current == null) return;
+                          if (!current.validate()) return;
+                          current.save();
+                          final studentData = '''
+Nombre: ${provider.name}
+Apellidos: ${provider.lastName}
+Género: ${provider.gender}
+Fecha de nacimiento: ${provider.birthDate == null ? '' : provider.birthDate!.day.toString().padLeft(2, '0') + '/' + provider.birthDate!.month.toString().padLeft(2, '0') + '/' + provider.birthDate!.year.toString()}
+Correo: ${provider.email}
+Teléfono: ${provider.phone}
+Institución: ${provider.institution}
+''';
+                          await showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Registro Exitoso'),
+                              content: Text(studentData),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(ctx).pop();
+                                  },
+                                  child: const Text('Cerrar'),
+                                ),
+                              ],
+                            ),
+                          );
+                          provider.formKey.currentState?.reset();
+                          provider.name = '';
+                          provider.lastName = '';
+                          provider.gender = '';
+                          provider.birthDate = null;
+                          provider.email = '';
+                          provider.phone = '';
+                          provider.institution = '';
+                        },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(

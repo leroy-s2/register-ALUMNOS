@@ -3,6 +3,10 @@ import '../../domain/entities/student.dart';
 import '../../domain/usecases/save_student.dart';
 
 class StudentFormProvider extends ChangeNotifier {
+  void setBirthDate(DateTime? date) {
+    birthDate = date;
+    notifyListeners();
+  }
   final SaveStudentUseCase saveStudentUseCase;
   StudentFormProvider({required this.saveStudentUseCase});
 
@@ -13,10 +17,14 @@ class StudentFormProvider extends ChangeNotifier {
   String name = '';
   String lastName = '';
   String gender = '';
+  DateTime? birthDate;
   String email = '';
   String phone = '';
   String institution = '';
-  bool acceptedTerms = false;
+  String? validateBirthDate(DateTime? v) {
+    if (v == null) return 'Fecha de nacimiento es requerida';
+    return null;
+  }
 
   bool isSaving = false;
 
@@ -48,19 +56,12 @@ class StudentFormProvider extends ChangeNotifier {
 
   String? validateInstitution(String? v) => _required(v, label: 'Institución Educativa');
 
-  void toggleTerms(bool? value) {
-    acceptedTerms = value ?? false;
-    notifyListeners();
-  }
 
   Future<void> onSubmit() async {
     final current = formKey.currentState;
     if (current == null) return;
     if (!current.validate()) return;
     
-    if (!acceptedTerms) {
-      return; // Show error in UI
-    }
     
     current.save();
 
@@ -75,7 +76,7 @@ class StudentFormProvider extends ChangeNotifier {
       email: email.trim(),
       phone: phone.trim(),
       institution: institution.trim(),
-      acceptedTerms: acceptedTerms,
+      // birthDate: birthDate, // Descomenta si tu entidad Student lo soporta
     );
 
     await saveStudentUseCase(student);
